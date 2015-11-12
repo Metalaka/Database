@@ -100,7 +100,7 @@ class Dal implements Core\Parameter\Parameterizable, Core\Event\Source
     /**
      * The layer instance.
      *
-     * @var \Hoa\Database\IDal\Wrapper
+     * @var \Generator of \Hoa\Database\IDal\Wrapper
      */
     protected $_layer                = null;
 
@@ -110,13 +110,6 @@ class Dal implements Core\Parameter\Parameterizable, Core\Event\Source
      * @var \Hoa\Core\Parameter
      */
     protected static $_parameters    = null;
-
-    /**
-     * The layer connection parameter.
-     *
-     * @var array
-     */
-    protected $_connectionParameters = [];
 
 
 
@@ -129,7 +122,9 @@ class Dal implements Core\Parameter\Parameterizable, Core\Event\Source
      */
     private function __construct(Array $connectionParameters)
     {
-        $this->_connectionParameters = $connectionParameters;
+        $this->_layer = (function() use ($connectionParameters) {
+            yield $this->open($connectionParameters);
+        })();
 
         $id    = $this->__id = self::$_id;
         $event = 'hoa://Event/Database/' . $id;
@@ -278,25 +273,26 @@ class Dal implements Core\Parameter\Parameterizable, Core\Event\Source
     /**
      * Open a connection to the database.
      *
-     * @return  void
+     * @param   array   $connectionParameters    The layer connection parameter.
+     * @return  \Hoa\Database\IDal\WrapperStatement
      */
-    private function open()
+    private function open(Array $connectionParameters)
     {
         list($dalName,
             $dsn,
             $username,
             $password,
-            $driverOptions) = $this->_connectionParameters;
+            $driverOptions) = $connectionParameters;
 
         // Please see https://bugs.php.net/55154.
         if (0 !== preg_match('#^sqlite:(.+)$#i', $dsn, $matches)) {
             $dsn = 'sqlite:' . resolve($matches[1]);
         }
 
-        $this->setDal(dnew(
+        $dal = dnew(
             '\Hoa\Database\Layer\\' . $dalName,
             [$dsn, $username, $password, $driverOptions]
-        ));
+        );
 
         $id = $this->getId();
         Core\Event::notify(
@@ -310,7 +306,7 @@ class Dal implements Core\Parameter\Parameterizable, Core\Event\Source
             ])
         );
 
-        return;
+        return $dal;
     }
 
     /**
@@ -360,11 +356,7 @@ class Dal implements Core\Parameter\Parameterizable, Core\Event\Source
      */
     protected function getDal()
     {
-        if (null === $this->_layer) {
-            $this->open();
-        }
-
-        return $this->_layer;
+        return $this->_layer->current();
     }
 
     /**
