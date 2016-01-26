@@ -34,52 +34,27 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-namespace Hoa\Database\Query;
+namespace Hoa\Database\IDal;
+
+use Hoa\Iterator;
 
 /**
- * Class \Hoa\Database\Query\Delete.
+ * Interface \Hoa\Database\IDal\WrapperIterator.
  *
- * Build a DELETE query.
+ * Interface of a DAL iterator statement wrapper.
  *
  * @copyright  Copyright © 2007-2016 Hoa community
  * @license    New BSD License
  */
-class Delete extends Where implements Dml
+interface WrapperIterator extends Iterator\Iterator
 {
-    use EncloseIdentifier;
-
     /**
-     * Table name.
+     * Create an iterator instance.
      *
-     * @var string
+     * @param   WrapperStatement  $statement      The PDOStatement instance.
+     * @param   array             $style          An array of fetching style
+     *                                            options.
+     * @return  void
      */
-    protected $_from = null;
-
-
-
-    /**
-     * Set the table name.
-     *
-     * @param   string  $source    Table name.
-     * @return  \Hoa\Database\Query\Delete
-     */
-    public function from($source)
-    {
-        $this->_from = $source;
-
-        return $this;
-    }
-
-    /**
-     * Generate the query.
-     *
-     * @return  string
-     */
-    public function __toString()
-    {
-        return
-            'DELETE FROM ' .
-            $this->enclose($this->_from) .
-            parent::__toString();
-    }
+    public function __construct(WrapperStatement $statement, $style);
 }
